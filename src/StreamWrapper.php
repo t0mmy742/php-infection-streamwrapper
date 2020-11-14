@@ -64,6 +64,8 @@ class StreamWrapper
 
     private static string $replacement;
 
+    private static bool $autoloadOverride = true;
+
     public static function intercept(string $file, string $with): void
     {
         if (!file_exists($file)) {
@@ -78,6 +80,12 @@ class StreamWrapper
     }
 
     public static function enable(): void
+    {
+        self::$autoloadOverride = false;
+        self::enablePriv();
+    }
+
+    private static function enablePriv(): void
     {
         stream_wrapper_unregister('file');
         stream_wrapper_register('file', self::class);
@@ -101,7 +109,7 @@ class StreamWrapper
             closedir($this->resource);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return true;
     }
@@ -125,7 +133,7 @@ class StreamWrapper
             $this->resource = opendir($path);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return is_resource($this->resource);
     }
@@ -145,7 +153,7 @@ class StreamWrapper
             $r = readdir($this->resource);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return $r;
     }
@@ -164,7 +172,7 @@ class StreamWrapper
             rewinddir($this->resource);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return true;
     }
@@ -189,7 +197,7 @@ class StreamWrapper
             $r = mkdir($path, $mode, $recursive);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return $r;
     }
@@ -212,7 +220,7 @@ class StreamWrapper
             $r = rename($path_from, $path_to);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return $r;
     }
@@ -236,7 +244,7 @@ class StreamWrapper
             $r = rmdir($path);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return $r;
     }
@@ -270,7 +278,7 @@ class StreamWrapper
             fclose($this->resource);
         }
 
-        self::enable();
+        self::enablePriv();
     }
 
     /**
@@ -288,7 +296,7 @@ class StreamWrapper
             $r = feof($this->resource);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return $r;
     }
@@ -308,7 +316,7 @@ class StreamWrapper
             $r = fflush($this->resource);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return $r;
     }
@@ -330,7 +338,7 @@ class StreamWrapper
             $r = flock($this->resource, $operation);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return $r;
     }
@@ -374,7 +382,7 @@ class StreamWrapper
                 break;
         }
 
-        self::enable();
+        self::enablePriv();
 
         return $r;
     }
@@ -413,7 +421,7 @@ class StreamWrapper
             if (!is_string($source)) {
                 throw new RuntimeException(sprintf("File `%s` could not be loaded.", $path));
             }
-            if ($functionCallMap !== []) {
+            if (self::$autoloadOverride && $functionCallMap !== []) {
                 $source = Override::convert($source, $functionCallMap);
             }
 
@@ -427,10 +435,10 @@ class StreamWrapper
                 fseek($this->resource, 0);
             }
 
-            self::enable();
+            self::enablePriv();
 
             return is_resource($this->resource);
-        } elseif ($functionCallMap !== []) {
+        } elseif (self::$autoloadOverride && $functionCallMap !== []) {
             $source = file_get_contents($path, $usePath);
             if (!is_string($source)) {
                 throw new RuntimeException(sprintf("File `%s` could not be loaded.", $path));
@@ -446,7 +454,7 @@ class StreamWrapper
                 fwrite($this->resource, $source);
                 fseek($this->resource, 0);
             }
-            self::enable();
+            self::enablePriv();
 
             return is_resource($this->resource);
         } elseif ($mode === 'rb' && pathinfo($path, PATHINFO_EXTENSION) === 'php') {
@@ -461,7 +469,7 @@ class StreamWrapper
                     fwrite($this->resource, $modified);
                     fseek($this->resource, 0);
                 }
-                self::enable();
+                self::enablePriv();
                 return is_resource($this->resource);
             }
         }
@@ -471,7 +479,7 @@ class StreamWrapper
             $this->resource = fopen($path, $mode, $usePath);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return is_resource($this->resource);
     }
@@ -493,7 +501,7 @@ class StreamWrapper
             $r = fread($this->resource, $count);
         }
 
-        self::enable();
+        self::enablePriv();
 
         if (!is_string($r)) {
             return '';
@@ -520,7 +528,7 @@ class StreamWrapper
             $r = fseek($this->resource, $offset, $whence);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return $r < 0 ? false : true;
     }
@@ -570,7 +578,7 @@ class StreamWrapper
                 break;
         }
 
-        self::enable();
+        self::enablePriv();
 
         return $r;
     }
@@ -593,7 +601,7 @@ class StreamWrapper
             }
         }
 
-        self::enable();
+        self::enablePriv();
 
         return $r;
     }
@@ -613,7 +621,7 @@ class StreamWrapper
             $r = ftell($this->resource);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return $r !== false ? $r : -1;
     }
@@ -635,7 +643,7 @@ class StreamWrapper
             $r = ftruncate($this->resource, $new_size);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return $r;
     }
@@ -657,7 +665,7 @@ class StreamWrapper
             $r = fwrite($this->resource, $data);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return $r;
     }
@@ -675,7 +683,7 @@ class StreamWrapper
 
         $r = unlink($path);
 
-        self::enable();
+        self::enablePriv();
 
         return $r;
     }
@@ -702,7 +710,7 @@ class StreamWrapper
             $r = $urlStatQuiet ? @stat($path) : stat($path);
         }
 
-        self::enable();
+        self::enablePriv();
 
         return $r;
     }
